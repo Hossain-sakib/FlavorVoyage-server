@@ -663,6 +663,19 @@ test("administration requires the authorized Google session and audits catalog a
   try {
     const store = new MemoryBlobStore();
     assert.equal((await call(store, "/admin/data")).status, 401);
+    const reserved = await call(store, "/auth/register", {
+      method: "POST",
+      body: {
+        name: "Blocked",
+        business: "Blocked",
+        email: "admin@example.test",
+        role: "retailer",
+        password: "Strong-password-123",
+      },
+    });
+    assert.equal(reserved.status, 409);
+    // A legacy password account can still explicitly link Google after allowlisting.
+    process.env.ADMIN_EMAILS = "";
     const account = await call(store, "/auth/register", {
       method: "POST",
       body: {
@@ -673,6 +686,7 @@ test("administration requires the authorized Google session and audits catalog a
         password: "Strong-password-123",
       },
     });
+    process.env.ADMIN_EMAILS = "admin@example.test";
     assert.equal(
       (await call(store, "/admin/data", { cookie: account.cookie })).status,
       403,

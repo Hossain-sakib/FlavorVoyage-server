@@ -5,8 +5,9 @@ const adminEmails = () =>
     .split(",")
     .map((v) => v.trim().toLowerCase())
     .filter(Boolean);
+const isAdminEmail = (email) => adminEmails().includes(email);
 const isAdminIdentity = (user) =>
-  Boolean(user?.firebaseUid && adminEmails().includes(user.email));
+  Boolean(user?.firebaseUid && isAdminEmail(user.email));
 function createAdminRouter({
   auth,
   getState,
@@ -19,12 +20,9 @@ function createAdminRouter({
   const router = express.Router();
   router.use(auth, (req, res, next) => {
     if (!isAdminIdentity(req.user) || req.authProvider !== "google")
-      return res
-        .status(403)
-        .json({
-          message:
-            "Administrator access requires the authorized Google account.",
-        });
+      return res.status(403).json({
+        message: "Administrator access requires the authorized Google account.",
+      });
     next();
   });
   function audit(user, action, target, fields = []) {
@@ -246,4 +244,4 @@ function createAdminRouter({
   });
   return router;
 }
-module.exports = { createAdminRouter, isAdminIdentity };
+module.exports = { createAdminRouter, isAdminIdentity, isAdminEmail };

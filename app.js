@@ -8,9 +8,13 @@ const {
 } = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
-const seed = require("./catalog-schema");
+const catalogSchema = require("./catalog-schema");
 const { createMediaRouter } = require("./media-api");
-const { createAdminRouter, isAdminIdentity } = require("./admin-api");
+const {
+  createAdminRouter,
+  isAdminIdentity,
+  isAdminEmail,
+} = require("./admin-api");
 const { verifyGoogleToken: defaultGoogleVerifier } = require("./google-auth");
 const hash = (value) => createHash("sha256").update(value).digest("hex");
 const publicUser = (
@@ -192,6 +196,8 @@ function createApp({
     const name = text(req.body.name, "Name");
     const business = text(req.body.business, "Business name");
     const email = text(req.body.email, "Email").toLowerCase();
+    if (isAdminEmail(email))
+      fail(409, "Use Continue with Google for the administrator account.");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       fail(400, "Enter a valid email address.");
     const password = text(req.body.password, "Password", 128);
@@ -436,7 +442,7 @@ function createApp({
             (p) =>
               p.supplierId === s.id &&
               p.active &&
-              seed.categories.includes(p.category),
+              catalogSchema.categories.includes(p.category),
           ),
       )
       .map((s) => ({
@@ -445,7 +451,7 @@ function createApp({
           (p) =>
             p.supplierId === s.id &&
             p.active &&
-            seed.categories.includes(p.category),
+            catalogSchema.categories.includes(p.category),
         ).length,
         distanceKm:
           point.latitude != null &&
@@ -477,7 +483,7 @@ function createApp({
   });
   app.get("/api/products", (req, res) => {
     let products = db.products.filter(
-      (p) => p.active && seed.categories.includes(p.category),
+      (p) => p.active && catalogSchema.categories.includes(p.category),
     );
     if (req.query.q)
       products = products.filter((p) =>
@@ -494,7 +500,7 @@ function createApp({
   app.get("/api/inventory", auth, role("supplier"), (req, res) =>
     res.json(db.products.filter((p) => p.supplierId === req.user.supplierId)),
   );
-  const categories = seed.categories;
+  const categories = catalogSchema.categories;
   function productFields(body) {
     const category = text(body.category, "Category");
     if (!categories.includes(category))
@@ -610,7 +616,7 @@ function createApp({
         (p) =>
           p.id === item.productId &&
           p.active &&
-          seed.categories.includes(p.category),
+          catalogSchema.categories.includes(p.category),
       );
       if (!p)
         fail(400, "A product is no longer available. Refresh your order.");
@@ -722,7 +728,7 @@ function createApp({
         (p) =>
           p.id === l.productId &&
           p.active &&
-          seed.categories.includes(p.category),
+          catalogSchema.categories.includes(p.category),
       );
       if (!p) fail(400, "Product not available.");
       integer(l.quantity, "Quantity", p.moq, 100000);
@@ -826,7 +832,7 @@ function createApp({
         (p) =>
           p.id === l.productId &&
           p.active &&
-          seed.categories.includes(p.category),
+          catalogSchema.categories.includes(p.category),
       );
       if (!p || p.stock < l.quantity)
         fail(409, `${l.name} is no longer available in that quantity.`);
