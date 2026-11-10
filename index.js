@@ -1,133 +1,24 @@
-const express = require("express");
-const cors = require("cors");
 require("dotenv").config();
-const app = express();
-const port = process.env.PORT || 5002;
-const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
-
-// middleware
-app.use(cors());
-app.use(express.json());
-
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.r1zkco7.mongodb.net/?retryWrites=true&w=majority`;
-
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  },
-});
-
-async function run() {
-  try {
-    // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
-
-    const productCollection = client.db("productDB").collection("product");
-    const cartCollection = client.db("cartDB").collection("cart");
-
-    // create
-    // get
-    app.get("/product", async (req, res) => {
-      const cursor = productCollection.find();
-      const result = await cursor.toArray();
-      res.send(result);
-    });
-
-    //  post
-    app.post("/product", async (req, res) => {
-      const newProduct = req.body;
-      console.log(newProduct);
-      const result = await productCollection.insertOne(newProduct);
-      res.send(result);
-    });
-
-    // update
-    // get
-    app.get("/product/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const result = await productCollection.findOne();
-      res.send(result);
-    });
-    // put
-    app.put("/product/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: new ObjectId(id) };
-      const options = { upsert: true };
-      updatedProduct = req.body;
-      const Product = {
-        $set: {
-          image: updatedProduct.image,
-          name: updatedProduct.name,
-          brand: updatedProduct.brand,
-          type: updatedProduct.type,
-          price: updatedProduct.price,
-          description: updatedProduct.description,
-          rating: updatedProduct.rating,
-        },
-      };
-      const result = await productCollection.updateOne(
-        filter,
-        Product,
-        options
-      );
-      res.send(result);
-    });
-
-
-
-
-
-
-    // cart
-    app.post("/cart", async (req, res) => {
-      const item = req.body;
-      console.log(item);
-      const result = await cartCollection.insertOne(item);
-      res.send(result);
-    }); 
-
-    app.get("/cart", async (req, res) => {
-      const result = await cartCollection.find().toArray();
-      res.send(result);
-    });
-
-
-    app.delete("/cart/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: id};
-      const result = await cartCollection.deleteOne(query);
-      res.send(result);
-    });
-
-
-
-
-
-
-
-
-
-
-    // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
-  } finally {
-    // Ensures that the client will close when you finish/error
-    // await client.close();
-  }
+const path = require("node:path");
+const { createApp } = require("./app");
+const production = process.env.NODE_ENV === "production";
+if (
+  production &&
+  (!process.env.DATA_FILE || !process.env.APP_ORIGIN?.startsWith("https://"))
+) {
+  throw new Error(
+    "Production requires a persistent DATA_FILE path and an HTTPS APP_ORIGIN. Use a single long-running server; serverless deployment is not supported by the local-file adapter.",
+  );
 }
-run().catch(console.dir);
-
-app.get("/", (req, res) => {
-  res.send("server is running");
+const app = createApp({
+  dataFile:
+    process.env.DATA_FILE || path.join(__dirname, ".data", "store.json"),
+  demo: !production && process.env.ENABLE_DEMO !== "false",
+  secure: production,
+  origin: process.env.APP_ORIGIN || "http://localhost:5173",
 });
-
-app.listen(port, () => {
-  console.log(`server is running on port ${port}`);
-});
+if (require.main === module)
+  app.listen(process.env.PORT || 5002, "0.0.0.0", () =>
+    console.log(`FlavorVoyage API listening on ${process.env.PORT || 5002}`),
+  );
+module.exports = app;

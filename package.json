@@ -5,15 +5,25 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "node --watch index.js",
+    "test": "node --test",
+    "build:netlify": "esbuild functions/api.js --bundle --platform=node --target=node24 --format=cjs --outfile=.netlify/functions/api/api.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "cors": "^2.8.5",
+    "@netlify/blobs": "^11.1.8",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "mongodb": "^6.1.0"
+    "jose": "^6.2.17",
+    "multer": "^2.5.0",
+    "serverless-http": "^4.0.0"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
   }
 }
