@@ -24,6 +24,8 @@ const seed = require("../tools/demo/seed.cjs");
     const before = stored.data,
       db = structuredClone(before);
     seed.migrateCatalogue(db);
+    if (process.argv.includes("--expand-marketplace"))
+      require("../tools/demo/expand-marketplace.cjs").expandMarketplace(db);
     if (process.env.BACKUP_FILE) {
       require("node:fs").writeFileSync(
         process.env.BACKUP_FILE,
