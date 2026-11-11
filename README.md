@@ -69,3 +69,9 @@ public uploaded image URLs can be stored on product records without changing the
 
 Never commit `.env`, `.data`, `.netlify`, credentials or private workspace exports.
 Do not run a demo importer automatically during application startup or deployment.
+
+In-app notifications are derived from the signed-in account's order history,
+quote activity and incoming messages. `GET /api/notifications` returns the latest
+50 events; `POST /api/notifications/read` accepts owned notification IDs only.
+Read state persists with the workspace and is limited to 500 IDs per account.
+This is an in-app feed, not a push, SMS or email delivery service.

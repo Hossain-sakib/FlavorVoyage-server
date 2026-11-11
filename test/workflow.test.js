@@ -300,9 +300,19 @@ test("account sessions, passwords, origin checks, demo isolation, and persistenc
     (await call("/session", { cookie: login.cookie })).data.user,
     null,
   );
+  const rootsBeforeDemo = (await call("/products")).data.filter(
+    (p) => !p.catalogOnly,
+  ).length;
   const demo1 = await call("/auth/demo", { body: { role: "supplier" } });
   const demo2 = await call("/auth/demo", { body: { role: "supplier" } });
   assert.notEqual(demo1.data.user.supplierId, demo2.data.user.supplierId);
+  const afterDemo = (await call("/products")).data;
+  assert.equal(afterDemo.filter((p) => !p.catalogOnly).length, rootsBeforeDemo);
+  assert.ok(
+    afterDemo
+      .filter((p) => p.supplierId === demo1.data.user.supplierId)
+      .every((p) => p.catalogOnly && p.demoListing && p.familyId),
+  );
   assert.ok(fs.readFileSync(dataFile, "utf8").includes("passwordHash"));
   assert.ok(!fs.readFileSync(dataFile, "utf8").includes("Strong-password-123"));
   const restored = await start(t, { dataFile });

@@ -1,4 +1,5 @@
 const express = require("express");
+const { createNotificationsRouter } = require("./notifications-api");
 const {
   randomBytes,
   randomUUID,
@@ -175,6 +176,10 @@ function createApp({
         if (v.until < Date.now()) attempts.delete(k);
     next();
   };
+  app.use(
+    "/api/notifications",
+    createNotificationsRouter({ auth, getState: () => db, transaction }),
+  );
   app.get("/api/health", (req, res) =>
     res.json({
       status: "ok",
@@ -376,6 +381,9 @@ function createApp({
               ...p,
               id: randomUUID(),
               supplierId: user.supplierId,
+              familyId: p.familyId || p.id,
+              catalogOnly: true,
+              demoListing: true,
             })),
           );
         }
@@ -783,6 +791,7 @@ function createApp({
         return res.json(
           transaction(() => {
             q.status = "declined";
+            q.updatedAt = new Date().toISOString();
             return q;
           }),
         );
@@ -799,6 +808,7 @@ function createApp({
             l.price = req.body.prices[i];
           });
           q.status = "offered";
+          q.updatedAt = new Date().toISOString();
           q.supplierNote = text(
             req.body.note ||
               "Offer valid for 7 days, subject to stock availability.",
@@ -814,6 +824,7 @@ function createApp({
       return res.json(
         transaction(() => {
           q.status = "cancelled";
+          q.updatedAt = new Date().toISOString();
           return q;
         }),
       );
@@ -858,6 +869,7 @@ function createApp({
           db.products.find((p) => p.id === l.productId).stock -= l.quantity;
         db.orders.push(order);
         q.status = "accepted";
+        q.updatedAt = new Date().toISOString();
         q.orderId = order.id;
         return { quote: q, order };
       }),
