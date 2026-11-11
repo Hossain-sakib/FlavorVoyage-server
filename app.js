@@ -1080,6 +1080,7 @@ function createApp({
       text,
       integer,
       publicUser,
+      productFields,
     }),
   );
   app.use("/api", (req, res) =>

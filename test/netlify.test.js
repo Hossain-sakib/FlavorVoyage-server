@@ -717,6 +717,31 @@ test("administration requires the authorized Google session and audits catalog a
     assert.equal(admin.status, 200);
     assert.equal(admin.data.users[0].passwordHash, undefined);
     assert.equal(admin.data.users[0].firebaseUid, undefined);
+    const newProduct = await call(store, "/admin/products", {
+      method: "POST",
+      cookie: linked.cookie,
+      body: {
+        name: "Admin-created drink",
+        brand: "Sample brand",
+        company: "Sample company",
+        category: "Soft drinks",
+        supplierId: "s-cosmobit-dhaka",
+        price: 600,
+        stock: 30,
+        moq: 2,
+        pack: "12 × 500 ml",
+        servingSize: "500 ml",
+        compositionNote: "Check the physical pack.",
+      },
+    });
+    assert.equal(newProduct.status, 201);
+    assert.equal(newProduct.data.name, "Admin-created drink");
+    assert.equal(newProduct.data.company, "Sample company");
+    assert.ok(
+      (await call(store, "/products")).data.some(
+        (p) => p.id === newProduct.data.id,
+      ),
+    );
     const p = store.value.products[0];
     assert.equal(
       (

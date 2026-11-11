@@ -16,6 +16,7 @@ function createAdminRouter({
   text,
   integer,
   publicUser,
+  productFields,
 }) {
   const router = express.Router();
   router.use(auth, (req, res, next) => {
@@ -66,6 +67,36 @@ function createAdminRouter({
           .reduce((n, o) => n + o.total, 0),
       },
     });
+  });
+  router.post("/products", (req, res) => {
+    const supplier = getState().suppliers.find(
+      (s) => s.id === req.body.supplierId,
+    );
+    if (!supplier) fail(400, "Choose a dealer for this listing.");
+    const fields = productFields(req.body);
+    const company = text(req.body.company || fields.brand, "Company", 160);
+    const compositionNote = req.body.compositionNote
+      ? text(req.body.compositionNote, "Composition notes", 1000)
+      : "Check the physical pack for complete ingredients and allergens.";
+    res.status(201).json(
+      transaction(() => {
+        const product = {
+          ...fields,
+          company,
+          compositionNote,
+          id: randomUUID(),
+          supplierId: supplier.id,
+          active: true,
+          catalogOnly: Boolean(fields.familyId),
+          demoListing: Boolean(supplier.demoShop),
+          badge: "New arrival",
+          createdAt: new Date().toISOString(),
+        };
+        getState().products.push(product);
+        audit(req.user, "product.created", product.id);
+        return product;
+      }),
+    );
   });
   router.patch("/products/:id", (req, res) => {
     const p = getState().products.find((p) => p.id === req.params.id);
