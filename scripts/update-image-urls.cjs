@@ -2,6 +2,11 @@
 const fs = require("node:fs");
 const { getStore } = require("@netlify/blobs");
 (async () => {
+  const { hostingEnv } = require("./hosting-env.cjs");
+  if ((await hostingEnv()).DATABASE_DRIVER === "mongodb")
+    throw Error(
+      "MongoDB is active. Use the administration API; this legacy importer targets the retained Blobs workspace only.",
+    );
   const map = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
   const store = getStore({
     name: "flavor-voyage-workspace",

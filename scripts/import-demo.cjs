@@ -2,6 +2,11 @@
 const { getStore } = require("@netlify/blobs");
 const seed = require("../tools/demo/seed.cjs");
 (async () => {
+  const { hostingEnv } = require("./hosting-env.cjs");
+  if ((await hostingEnv()).DATABASE_DRIVER === "mongodb")
+    throw Error(
+      "MongoDB is active. Use the administration API; this legacy importer targets the retained Blobs workspace only.",
+    );
   if (!process.env.NETLIFY_AUTH_TOKEN)
     throw new Error(
       "Configure NETLIFY_AUTH_TOKEN before running the importer.",
