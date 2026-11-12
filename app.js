@@ -54,6 +54,9 @@ function createApp({
   verifyGoogleToken = defaultGoogleVerifier,
   initialState,
   storageLabel,
+  operations,
+  writePaused = false,
+  migrationReady = false,
   trustedNetlifyProxy = false,
   demo = false,
   secure = false,
@@ -183,6 +186,8 @@ function createApp({
   app.get("/api/health", (req, res) =>
     res.json({
       status: "ok",
+      writePaused,
+      migrationReady,
       currency: "BDT",
       storage: storageLabel || (dataFile ? "local-file" : "memory"),
       demo,
@@ -1093,6 +1098,9 @@ function createApp({
       integer,
       publicUser,
       productFields,
+      operations,
+      demo,
+      storageLabel,
     }),
   );
   app.use("/api", (req, res) =>

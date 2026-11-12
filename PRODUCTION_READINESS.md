@@ -5,15 +5,21 @@ verification, Google-only admin authorization, hashed passwords and session toke
 HttpOnly/SameSite cookies, origin checks, input bounds, file limits and type checks,
 server-only Cloudinary secrets, conditional datastore writes, server-priced orders,
 audit records, dependency checks, CI and browser workflow coverage.
+Private daily/manual snapshots, checksum validation, restore drills, guarded operator
+restore, hourly availability checks, admin health views, reports/CSV exports and
+contact-linked CRM follow-ups are also implemented.
 
 These checks are not a guarantee of zero vulnerabilities or a security certification.
 Before real commercial operations:
 
 1. Disable shared demo accounts and remove or archive sample stores, prices and feedback.
-2. Replace the single-document workspace with a transactional database suitable for
-   expected volume. Establish tested backups, restore drills and retention policies.
+2. MongoDB support retains a revisioned single-document workspace. Split domains
+   into collections and load-test the transactional model for expected volume.
+   Add independent off-provider backups and a documented disaster-recovery
+   ownership/retention policy; same-provider snapshots and a restore drill exist.
 3. Add independent penetration testing, alerting, operational monitoring, abuse/rate
-   controls at the edge, incident response and account-recovery procedures.
+   controls at the edge, incident response and account-recovery procedures. Hourly
+   GitHub availability checks and admin diagnostics are a baseline, not a full SLA.
 4. Review legal/privacy requirements, vendor authorization, actual delivery terms,
    label accuracy, taxes, invoices, refunds and financial reconciliation.
 5. Introduce accounting, warehouse movements, procurement, financial ledgers and

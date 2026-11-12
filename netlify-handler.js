@@ -1,3 +1,4 @@
+const { saveSnapshot, snapshotStatus } = require("./workspace-backups");
 const serverless = require("serverless-http");
 const { createApp } = require("./app");
 
@@ -6,6 +7,9 @@ const { createApp } = require("./app");
 // cannot oversell stock, lose orders, or overwrite another session's changes.
 function createCloudHandler({
   store,
+  backupStore,
+  migrationControlStore,
+  storageLabel = "netlify-blobs",
   origin,
   demo = false,
   verifyGoogleToken,
@@ -27,6 +31,24 @@ function createCloudHandler({
             "",
           ) || "/api/health",
       };
+      const pause = migrationControlStore
+        ? await migrationControlStore.get("write-pause", {
+            type: "json",
+            consistency: "strong",
+          })
+        : null;
+      if (
+        pause?.paused &&
+        !["GET", "HEAD", "OPTIONS"].includes(request.httpMethod)
+      )
+        return {
+          statusCode: 503,
+          headers: { ...headers, "Retry-After": "60" },
+          body: JSON.stringify({
+            message:
+              "Database maintenance is in progress. Please try again shortly.",
+          }),
+        };
       for (let attempt = 0; attempt < 4; attempt++) {
         const stored = await store.getWithMetadata("workspace-v1", {
           type: "json",
@@ -47,14 +69,25 @@ function createCloudHandler({
           origin,
           secure: true,
           demo,
-          storageLabel: "netlify-blobs",
+          storageLabel,
+          writePaused: Boolean(pause?.paused),
+          migrationReady: Boolean(migrationControlStore),
+          operations: backupStore
+            ? {
+                status: () => snapshotStatus(backupStore),
+                create: (state) => saveSnapshot(backupStore, state),
+              }
+            : undefined,
           trustedNetlifyProxy: true,
         });
         const before = stored ? JSON.stringify(stored.data) : null;
         const response = await serverless(app)(request, context);
         const next = app.exportState();
         // Read-only requests need no write. Initial seeding is committed once.
-        if (stored && JSON.stringify(next) === before) return response;
+        if (pause?.paused || (stored && JSON.stringify(next) === before))
+          return response;
+        if (stored && backupStore)
+          await saveSnapshot(backupStore, stored.data, { daily: true });
         const committed = await store.setJSON(
           "workspace-v1",
           next,

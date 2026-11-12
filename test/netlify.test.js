@@ -870,3 +870,69 @@ test("production refuses to silently recreate a missing workspace", async () => 
   assert.equal(response.statusCode, 503);
   assert.equal(store.value, null);
 });
+
+test("hosted writes create private daily recovery points and fail closed if backup storage fails", async () => {
+  const store = new MemoryBlobStore();
+  await call(store, "/health");
+  const snapshots = new Map();
+  const backups = {
+    getMetadata: async (key) => (snapshots.has(key) ? {} : null),
+    setJSON: async (key, value) => {
+      if (snapshots.has(key)) return { modified: false };
+      snapshots.set(key, structuredClone(value));
+      return { modified: true };
+    },
+    list: async () => ({
+      blobs: [...snapshots.keys()].map((key) => ({ key })),
+    }),
+    delete: async (key) => snapshots.delete(key),
+  };
+  function invoke(backupStore, email) {
+    return createCloudHandler({
+      store,
+      backupStore,
+      origin: "https://flavor-voyage.netlify.app",
+      requireExistingStore: true,
+    })({
+      path: "/api/auth/register",
+      httpMethod: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "https://flavor-voyage.netlify.app",
+      },
+      body: JSON.stringify({
+        name: "Buyer",
+        business: "Shop",
+        email,
+        password: "Strong-password-123",
+        role: "retailer",
+      }),
+      isBase64Encoded: false,
+      requestContext: { identity: { sourceIp: "192.0.2.1" } },
+    });
+  }
+  const before = structuredClone(store.value);
+  assert.equal((await invoke(backups, "first@backup.test")).statusCode, 201);
+  assert.equal(snapshots.size, 1);
+  const snapshot = [...snapshots.values()][0];
+  assert.deepEqual(snapshot.data.users, before.users);
+  assert.equal(snapshot.data.sessions, undefined);
+  assert.equal((await invoke(backups, "second@backup.test")).statusCode, 201);
+  assert.equal(snapshots.size, 1);
+  const version = store.version;
+  assert.equal(
+    (
+      await invoke(
+        {
+          getMetadata: async () => {
+            throw Error("offline");
+          },
+        },
+        "blocked@backup.test",
+      )
+    ).statusCode,
+    503,
+  );
+  assert.equal(store.version, version);
+  assert.ok(!store.value.users.some((u) => u.email === "blocked@backup.test"));
+});

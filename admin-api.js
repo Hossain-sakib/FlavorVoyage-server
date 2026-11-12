@@ -1,3 +1,4 @@
+const { registerAdminWorkflows } = require("./admin-workflows");
 const express = require("express");
 const { randomUUID } = require("node:crypto");
 const adminEmails = () =>
@@ -17,6 +18,9 @@ function createAdminRouter({
   integer,
   publicUser,
   productFields,
+  operations,
+  demo,
+  storageLabel,
 }) {
   const router = express.Router();
   router.use(auth, (req, res, next) => {
@@ -45,6 +49,7 @@ function createAdminRouter({
       users: db.users.map((u) => ({
         ...publicUser(u),
         suspended: Boolean(u.suspended),
+        demo: Boolean(u.demo),
         orderCount: db.orders.filter(
           (o) => o.retailerId === u.id || o.supplierId === u.supplierId,
         ).length,
@@ -272,6 +277,17 @@ function createAdminRouter({
         return content;
       }),
     );
+  });
+  registerAdminWorkflows({
+    router,
+    getState,
+    transaction,
+    fail,
+    text,
+    audit,
+    operations,
+    demo,
+    storageLabel,
   });
   return router;
 }

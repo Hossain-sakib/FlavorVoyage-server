@@ -17,11 +17,15 @@ const { getStore } = require("@netlify/blobs");
     if (!stored) throw Error("Workspace not found.");
     const db = structuredClone(stored.data);
     let count = 0;
-    for (const p of db.products)
-      if (map[p.image]) {
-        p.image = map[p.image];
-        count++;
-      }
+    for (const [rows, field] of [
+      [db.products, "image"],
+      [db.suppliers, "coverImage"],
+    ])
+      for (const row of rows)
+        if (map[row[field]]) {
+          row[field] = map[row[field]];
+          count++;
+        }
     const result = await store.setJSON("workspace-v1", db, {
       onlyIfMatch: stored.etag,
     });
