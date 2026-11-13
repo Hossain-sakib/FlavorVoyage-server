@@ -1,3 +1,4 @@
+const { portfolioSecurityHeaders } = require("../security-headers");
 const { getStore, setEnvironmentContext } = require("@netlify/blobs");
 const { getMongoStore } = require("../mongo-store");
 const { databaseOperator } = require("../database-operator");
@@ -49,10 +50,10 @@ exports.handler = async (event, context) => {
     console.error("Workspace connection failed:", error.name);
     return {
       statusCode: 503,
-      headers: {
+      headers: portfolioSecurityHeaders({
         "Content-Type": "application/json",
         "Cache-Control": "no-store",
-      },
+      }),
       body: JSON.stringify({
         message: "The workspace database is temporarily unavailable.",
       }),

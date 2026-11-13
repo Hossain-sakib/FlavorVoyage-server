@@ -1,3 +1,4 @@
+const { portfolioSecurityHeaders } = require("./security-headers");
 const express = require("express");
 const { createNotificationsRouter } = require("./notifications-api");
 const {
@@ -121,8 +122,14 @@ function createApp({
     allowedOrigins.add("http://127.0.0.1:5173");
   const app = express();
   app.disable("x-powered-by");
-  app.use(express.json({ limit: "32kb" }));
   app.use((req, res, next) => {
+    res.removeHeader("X-Frame-Options");
+    res.set(
+      "Content-Security-Policy",
+      portfolioSecurityHeaders({
+        "Content-Security-Policy": res.get("Content-Security-Policy"),
+      })["Content-Security-Policy"],
+    );
     res.set("Cache-Control", "no-store");
     res.set("X-Content-Type-Options", "nosniff");
     // Same-origin requests go through Vite/reverse proxy. Reject cross-site mutations.
@@ -149,6 +156,7 @@ function createApp({
     if (record && record.expires <= Date.now()) sessions.delete(hash(token));
     next();
   });
+  app.use(express.json({ limit: "32kb" }));
   const auth = (req, res, next) => {
     if (!req.user)
       return res.status(401).json({ message: "Please sign in to continue." });

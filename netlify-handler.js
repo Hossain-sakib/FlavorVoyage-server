@@ -1,3 +1,4 @@
+const { portfolioSecurityHeaders } = require("./security-headers");
 const { saveSnapshot, snapshotStatus } = require("./workspace-backups");
 const serverless = require("serverless-http");
 const { createApp } = require("./app");
@@ -18,10 +19,10 @@ function createCloudHandler({
 }) {
   return async function handler(event, context = {}) {
     context.callbackWaitsForEmptyEventLoop = false;
-    const headers = {
+    const headers = portfolioSecurityHeaders({
       "Content-Type": "application/json",
       "Cache-Control": "no-store",
-    };
+    });
     try {
       const request = {
         ...event,

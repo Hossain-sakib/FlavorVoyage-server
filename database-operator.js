@@ -1,3 +1,4 @@
+const { portfolioSecurityHeaders } = require("./security-headers");
 /** One-use hosting-operator migration capability. Not a user/admin role bypass. */
 const { createHash, timingSafeEqual, randomUUID } = require("node:crypto");
 const { getMongoStore } = require("./mongo-store");
@@ -19,10 +20,10 @@ async function databaseOperator(
     mongo = getMongoStore,
   },
 ) {
-  const headers = {
+  const headers = portfolioSecurityHeaders({
     "Content-Type": "application/json",
     "Cache-Control": "no-store",
-  };
+  });
   const reply = (statusCode, data) => ({
     statusCode,
     headers,
