@@ -16,7 +16,6 @@
   const existing = rows.find((row) => row.key === "DATABASE_DRIVER");
   const body = {
     key: "DATABASE_DRIVER",
-    scopes: ["functions"],
     values: [{ context: "all", value: driver }],
   };
   const result = await fetch(
@@ -27,7 +26,8 @@
       body: JSON.stringify(existing ? body : [body]),
     },
   );
-  if (!result.ok) throw Error("Unable to set database driver.");
+  if (!result.ok)
+    throw Error("Unable to set database driver (HTTP " + result.status + ").");
   console.log(
     JSON.stringify({ configuredDriver: driver, redeployRequired: true }),
   );
